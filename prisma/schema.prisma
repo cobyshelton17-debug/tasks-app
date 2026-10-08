@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  ownedLists    TaskList[]   @relation("ListOwner")
+  memberships   ListMember[]
+  sentInvites   Invitation[] @relation("Inviter")
+  createdTasks  Task[]       @relation("TaskCreator")
+  assignedTasks Task[]       @relation("TaskAssignee")
+}
+
+model TaskList {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members     ListMember[]
+  tasks       Task[]
+  invitations Invitation[]
+
+  @@index([ownerId])
+}
+
+model ListMember {
+  id        String     @id @default(cuid())
+  listId    String
+  userId    String
+  role      MemberRole
+  createdAt DateTime   @default(now())
+  list      TaskList   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+  @@index([userId])
+}
+
+enum MemberRole {
+  OWNER
+  EDITOR
+}
+
+model Invitation {
+  id           String           @id @default(cuid())
+  listId       String
+  inviteeEmail String
+  invitedById  String
+  status       InvitationStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  respondedAt  DateTime?
+  list         TaskList         @relation(fields: [listId], references: [id], onDelete: Cascade)
+  inviter      User             @relation("Inviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([inviteeEmail, status])
+  @@index([listId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  listId      String
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  position    Int
+  dueDate     DateTime?
+  createdById String
+  assigneeId  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  list        TaskList   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([listId, position])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
