@@ -3,7 +3,6 @@ import express from "express";
 import * as rateLimitNs from "express-rate-limit";
 import * as helmetNs from "helmet";
 import { config } from "./config.js";
-import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import { authRouter } from "./routes/auth.js";
 import { invitationsRouter } from "./routes/invitations.js";
@@ -45,23 +44,6 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
-  });
-
-  app.post("/api/dev/cleanup", async (req, res) => {
-    const key = req.header("x-cleanup-key");
-    if (!process.env.CLEANUP_KEY || key !== process.env.CLEANUP_KEY) {
-      res.status(404).end();
-      return;
-    }
-    const emails = [
-      "coby@gmail.com",
-      "wife@gmail.com",
-      "deploy-check@test.dev",
-    ];
-    const result = await prisma.user.deleteMany({
-      where: { email: { in: emails } },
-    });
-    res.json({ deleted: result.count });
   });
 
   app.use("/api/auth", authRouter);
