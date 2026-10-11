@@ -47,11 +47,6 @@ export function createApp() {
     res.json({ status: "ok" });
   });
 
-  app.use("/api/auth", authRouter);
-  app.use("/api/lists", listsRouter);
-  app.use("/api", invitationsRouter);
-  app.use("/api", tasksRouter);
-
   app.post("/api/dev/cleanup", async (req, res) => {
     const key = req.header("x-cleanup-key");
     if (!process.env.CLEANUP_KEY || key !== process.env.CLEANUP_KEY) {
@@ -68,6 +63,11 @@ export function createApp() {
     });
     res.json({ deleted: result.count });
   });
+
+  app.use("/api/auth", authRouter);
+  app.use("/api/lists", listsRouter);
+  app.use("/api", invitationsRouter);
+  app.use("/api", tasksRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
