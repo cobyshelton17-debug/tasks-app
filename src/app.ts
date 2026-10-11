@@ -1,13 +1,20 @@
 import cors from "cors";
 import express from "express";
-import rateLimit from "express-rate-limit";
-import helmet from "helmet";
+import * as rateLimitNs from "express-rate-limit";
+import * as helmetNs from "helmet";
 import { config } from "./config.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import { authRouter } from "./routes/auth.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { listsRouter } from "./routes/lists.js";
 import { tasksRouter } from "./routes/tasks.js";
+
+const helmet = helmetNs.default as unknown as (
+  options?: helmetNs.HelmetOptions,
+) => express.RequestHandler;
+const rateLimit = rateLimitNs.default as unknown as (
+  options?: Partial<rateLimitNs.Options>,
+) => express.RequestHandler;
 
 export function createApp() {
   const app = express();
