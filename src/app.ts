@@ -42,6 +42,15 @@ export function createApp() {
     );
   }
 
+  app.get("/", (_req, res) => {
+    const target = config.corsOrigins[0];
+    if (target) {
+      res.redirect(302, target);
+      return;
+    }
+    res.json({ status: "ok", service: "tasks-app-api" });
+  });
+
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
