@@ -1,3 +1,4 @@
+import "@prisma/client/runtime/library";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
