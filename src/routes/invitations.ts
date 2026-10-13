@@ -101,6 +101,11 @@ invitationsRouter.post("/invitations/:id/accept", async (req, res, next) => {
     const invitation = await loadInviteeInvitation(param(req, "id"), user.email);
     pendingOnly(invitation.status);
 
+    const maxPosition = await prisma.listMember.aggregate({
+      where: { userId: user.id },
+      _max: { position: true },
+    });
+
     const [updated] = await prisma.$transaction([
       prisma.invitation.update({
         where: { id: invitation.id },
@@ -108,7 +113,12 @@ invitationsRouter.post("/invitations/:id/accept", async (req, res, next) => {
       }),
       prisma.listMember.upsert({
         where: { listId_userId: { listId: invitation.listId, userId: user.id } },
-        create: { listId: invitation.listId, userId: user.id, role: "EDITOR" },
+        create: {
+          listId: invitation.listId,
+          userId: user.id,
+          role: "EDITOR",
+          position: (maxPosition._max.position ?? -1) + 1,
+        },
         update: {},
       }),
     ]);

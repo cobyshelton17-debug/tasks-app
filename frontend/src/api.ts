@@ -106,6 +106,9 @@ export const api = {
 
   deleteList: (id: string) => request<void>(`/lists/${id}`, { method: "DELETE" }),
 
+  reorderLists: (order: string[]) =>
+    request<void>("/lists/reorder", { method: "PATCH", body: JSON.stringify({ order }) }),
+
   leaveList: (id: string) => request<void>(`/lists/${id}/members/leave`, { method: "POST" }),
 
   removeMember: (listId: string, userId: string) =>
@@ -151,4 +154,10 @@ export const api = {
   ) => request<Task>(`/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(body) }),
 
   deleteTask: (taskId: string) => request<void>(`/tasks/${taskId}`, { method: "DELETE" }),
+
+  reorderTasks: (listId: string, order: string[]) =>
+    request<void>(`/lists/${listId}/tasks/reorder`, {
+      method: "PATCH",
+      body: JSON.stringify({ order }),
+    }),
 };

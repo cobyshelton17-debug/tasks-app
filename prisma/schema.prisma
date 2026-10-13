@@ -42,6 +42,7 @@ model ListMember {
   listId    String
   userId    String
   role      MemberRole
+  position  Int        @default(0)
   createdAt DateTime   @default(now())
   list      TaskList   @relation(fields: [listId], references: [id], onDelete: Cascade)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)

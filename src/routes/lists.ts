@@ -19,6 +19,7 @@ const listNameSchema = z
 
 const createListSchema = z.object({ name: listNameSchema });
 const updateListSchema = z.object({ name: listNameSchema });
+const reorderSchema = z.object({ order: z.array(z.string().min(1)).min(1) });
 
 const listInclude = {
   owner: { select: { id: true, name: true, email: true } },
@@ -39,7 +40,7 @@ listsRouter.get("/", async (req, res, next) => {
     const memberships = await prisma.listMember.findMany({
       where: { userId: user.id },
       include: { list: { include: listInclude } },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
 
     res.json(
@@ -58,11 +59,22 @@ listsRouter.post("/", validateBody(createListSchema), async (req, res, next) => 
     const user = assertAuth(req);
     const { name } = req.body as z.infer<typeof createListSchema>;
 
+    const maxPosition = await prisma.listMember.aggregate({
+      where: { userId: user.id },
+      _max: { position: true },
+    });
+
     const list = await prisma.taskList.create({
       data: {
         name,
         ownerId: user.id,
-        members: { create: { userId: user.id, role: "OWNER" } },
+        members: {
+          create: {
+            userId: user.id,
+            role: "OWNER",
+            position: (maxPosition._max.position ?? -1) + 1,
+          },
+        },
       },
       include: listInclude,
     });
@@ -94,6 +106,35 @@ listsRouter.get("/:id", async (req, res, next) => {
     if (!list) throw notFound("List not found");
 
     res.json({ ...list, myRole: membership.role });
+  } catch (err) {
+    next(err);
+  }
+});
+
+listsRouter.patch("/reorder", validateBody(reorderSchema), async (req, res, next) => {
+  try {
+    const user = assertAuth(req);
+    const { order } = req.body as z.infer<typeof reorderSchema>;
+
+    const memberships = await prisma.listMember.findMany({
+      where: { userId: user.id },
+      select: { listId: true },
+    });
+    const owned = new Set(memberships.map((m) => m.listId));
+    if (order.length !== owned.size || !order.every((id) => owned.has(id))) {
+      throw badRequest("Order must include exactly your lists");
+    }
+
+    await prisma.$transaction(
+      order.map((listId, index) =>
+        prisma.listMember.update({
+          where: { listId_userId: { listId, userId: user.id } },
+          data: { position: index },
+        }),
+      ),
+    );
+
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

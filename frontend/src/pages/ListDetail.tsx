@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type Task, type TaskList } from "../api";
 import CollaborateSheet from "../components/CollaborateSheet";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { BackIcon, CheckIcon, DotsIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
+import { BackIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, DotsIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +22,7 @@ export default function ListDetail() {
   const [renameName, setRenameName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [taskActionsFor, setTaskActionsFor] = useState<Task | null>(null);
   const skipBlurSave = useRef(false);
   const addFormRef = useRef<HTMLFormElement>(null);
   const renameFormRef = useRef<HTMLFormElement>(null);
@@ -101,6 +102,22 @@ export default function ListDetail() {
       await api.deleteTask(taskId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete task");
+      refresh();
+    }
+  }
+
+  async function moveTask(task: Task, dir: -1 | 1) {
+    if (!list) return;
+    const index = list.tasks.findIndex((t) => t.id === task.id);
+    const target = index + dir;
+    if (index < 0 || target < 0 || target >= list.tasks.length) return;
+    const nextTasks = [...list.tasks];
+    [nextTasks[index], nextTasks[target]] = [nextTasks[target], nextTasks[index]];
+    setList({ ...list, tasks: nextTasks });
+    try {
+      await api.reorderTasks(list.id, nextTasks.map((t) => t.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reorder tasks");
       refresh();
     }
   }
@@ -289,6 +306,14 @@ export default function ListDetail() {
                   )}
                   <button
                     type="button"
+                    aria-label={`Options for ${task.title}`}
+                    onClick={() => setTaskActionsFor(task)}
+                    className="-mt-1 rounded-full p-2 text-slate-300 hover:bg-slate-100 hover:text-slate-600"
+                  >
+                    <DotsIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
                     aria-label={`Delete ${task.title}`}
                     onClick={() => removeTask(task.id)}
                     className="-mt-1 rounded-full p-2 text-slate-300 hover:bg-red-50 hover:text-red-500"
@@ -394,6 +419,39 @@ export default function ListDetail() {
           Delete
         </SheetButton>
         <SheetButton variant="muted" onClick={() => setDeleteOpen(false)}>
+          Cancel
+        </SheetButton>
+      </Sheet>
+
+      <Sheet
+        open={taskActionsFor !== null}
+        onClose={() => setTaskActionsFor(null)}
+        title={taskActionsFor?.title}
+      >
+        <SheetButton
+          disabled={list.tasks.findIndex((t) => t.id === taskActionsFor?.id) <= 0}
+          onClick={() => {
+            if (taskActionsFor) moveTask(taskActionsFor, -1);
+            setTaskActionsFor(null);
+          }}
+        >
+          <ChevronUpIcon className="h-5 w-5" />
+          Move up
+        </SheetButton>
+        <SheetButton
+          disabled={
+            list.tasks.findIndex((t) => t.id === taskActionsFor?.id) >= list.tasks.length - 1
+          }
+          onClick={() => {
+            if (taskActionsFor) moveTask(taskActionsFor, 1);
+            setTaskActionsFor(null);
+          }}
+        >
+          <ChevronDownIcon className="h-5 w-5" />
+          Move down
+        </SheetButton>
+        <SheetButton variant="muted" onClick={() => setTaskActionsFor(null)}>
+          <XIcon className="h-5 w-5" />
           Cancel
         </SheetButton>
       </Sheet>

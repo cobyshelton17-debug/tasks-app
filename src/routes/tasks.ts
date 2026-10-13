@@ -41,6 +41,8 @@ const updateTaskSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: "No fields to update" });
 
+const reorderSchema = z.object({ order: z.array(z.string().min(1)).min(1) });
+
 const taskInclude = {
   createdBy: { select: { id: true, name: true, email: true } },
   assignee: { select: { id: true, name: true, email: true } },
@@ -111,6 +113,34 @@ tasksRouter.post("/lists/:id/tasks", validateBody(createTaskSchema), async (req,
     });
 
     res.status(201).json(task);
+  } catch (err) {
+    next(err);
+  }
+});
+
+tasksRouter.patch("/lists/:id/tasks/reorder", validateBody(reorderSchema), async (req, res, next) => {
+  try {
+    const user = assertAuth(req);
+    const listId = param(req, "id");
+    await requireListMember(listId, user.id);
+
+    const { order } = req.body as z.infer<typeof reorderSchema>;
+    const tasks = await prisma.task.findMany({
+      where: { listId },
+      select: { id: true },
+    });
+    const ids = new Set(tasks.map((t) => t.id));
+    if (order.length !== ids.size || !order.every((id) => ids.has(id))) {
+      throw badRequest("Order must include exactly the tasks in this list");
+    }
+
+    await prisma.$transaction(
+      order.map((id, index) =>
+        prisma.task.update({ where: { id }, data: { position: index } }),
+      ),
+    );
+
+    res.status(204).end();
   } catch (err) {
     next(err);
   }

@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 import CollaborateSheet from "../components/CollaborateSheet";
 import ListCard from "../components/ListCard";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
+import { ChevronDownIcon, ChevronUpIcon, ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
 
 export default function Dashboard() {
   const { logout } = useAuth();
@@ -75,6 +75,21 @@ export default function Dashboard() {
       setActionsFor(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Could not delete list");
+    }
+  }
+
+  async function moveList(list: TaskList, dir: -1 | 1) {
+    const index = lists.findIndex((l) => l.id === list.id);
+    const target = index + dir;
+    if (index < 0 || target < 0 || target >= lists.length) return;
+    const next = [...lists];
+    [next[index], next[target]] = [next[target], next[index]];
+    setLists(next);
+    try {
+      await api.reorderLists(next.map((l) => l.id));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not reorder lists");
+      refresh();
     }
   }
 
@@ -249,6 +264,28 @@ export default function Dashboard() {
         onClose={() => setActionsFor(null)}
         title={actionsFor?.name}
       >
+        <SheetButton
+          disabled={actionsFor ? lists.findIndex((l) => l.id === actionsFor.id) <= 0 : true}
+          onClick={() => {
+            if (actionsFor) moveList(actionsFor, -1);
+            setActionsFor(null);
+          }}
+        >
+          <ChevronUpIcon className="h-5 w-5" />
+          Move up
+        </SheetButton>
+        <SheetButton
+          disabled={
+            actionsFor ? lists.findIndex((l) => l.id === actionsFor.id) >= lists.length - 1 : true
+          }
+          onClick={() => {
+            if (actionsFor) moveList(actionsFor, 1);
+            setActionsFor(null);
+          }}
+        >
+          <ChevronDownIcon className="h-5 w-5" />
+          Move down
+        </SheetButton>
         <SheetButton
           onClick={() => {
             setRenameName(actionsFor?.name ?? "");
