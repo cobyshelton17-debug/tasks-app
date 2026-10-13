@@ -25,6 +25,7 @@ export default function ListDetail() {
   const skipBlurSave = useRef(false);
   const addFormRef = useRef<HTMLFormElement>(null);
   const renameFormRef = useRef<HTMLFormElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   const refresh = useCallback(async () => {
     if (!id) return;
@@ -53,6 +54,13 @@ export default function ListDetail() {
       window.clearInterval(timer);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    const el = editRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [editingId, draft]);
 
   async function addTask(e: FormEvent) {
     e.preventDefault();
@@ -232,7 +240,7 @@ export default function ListDetail() {
               return (
                 <li
                   key={task.id}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
+                  className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm"
                 >
                   <button
                     type="button"
@@ -249,13 +257,15 @@ export default function ListDetail() {
                     <CheckIcon className="h-3.5 w-3.5" />
                   </button>
                   {editingId === task.id ? (
-                    <input
+                    <textarea
+                      ref={editRef}
                       autoFocus
+                      rows={1}
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       onBlur={() => saveTitle(task)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+                        if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
                           saveTitle(task);
                         } else if (e.key === "Escape") {
@@ -264,13 +274,13 @@ export default function ListDetail() {
                         }
                       }}
                       maxLength={500}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 outline-none focus:border-slate-400"
+                      className="min-w-0 flex-1 resize-none overflow-hidden rounded-xl border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 outline-none focus:border-slate-400"
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => startEdit(task)}
-                      className={`min-w-0 flex-1 truncate text-left text-sm ${
+                      className={`min-w-0 flex-1 whitespace-normal break-words text-left text-sm ${
                         isDone ? "text-slate-400 line-through" : "text-slate-800"
                       }`}
                     >
@@ -281,7 +291,7 @@ export default function ListDetail() {
                     type="button"
                     aria-label={`Delete ${task.title}`}
                     onClick={() => removeTask(task.id)}
-                    className="rounded-full p-2 text-slate-300 hover:bg-red-50 hover:text-red-500"
+                    className="-mt-1 rounded-full p-2 text-slate-300 hover:bg-red-50 hover:text-red-500"
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
