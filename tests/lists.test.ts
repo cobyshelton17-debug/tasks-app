@@ -50,7 +50,7 @@ describe("lists", () => {
     await request(app).get("/api/lists/nonexistent-id").set(auth(alice)).expect(404);
   });
 
-  it("only the owner can rename the list", async () => {
+  it("members can rename the list, non-members cannot", async () => {
     const list = await createList(alice);
 
     await request(app)
@@ -59,12 +59,23 @@ describe("lists", () => {
       .send({ name: "Hacked" })
       .expect(403);
 
+    await request(app)
+      .post(`/api/lists/${list.id}/invitations`)
+      .set(auth(alice))
+      .send({ email: bob.email })
+      .expect(201);
+    const pending = await request(app).get("/api/invitations").set(auth(bob)).expect(200);
+    await request(app)
+      .post(`/api/invitations/${pending.body[0].id}/accept`)
+      .set(auth(bob))
+      .expect(200);
+
     const res = await request(app)
       .patch(`/api/lists/${list.id}`)
-      .set(auth(alice))
-      .send({ name: "Renamed" })
+      .set(auth(bob))
+      .send({ name: "Renamed by editor" })
       .expect(200);
-    expect(res.body.name).toBe("Renamed");
+    expect(res.body.name).toBe("Renamed by editor");
   });
 
   it("only the owner can delete the list", async () => {

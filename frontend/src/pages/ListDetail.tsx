@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type Task, type TaskList } from "../api";
 import CollaborateSheet from "../components/CollaborateSheet";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { BackIcon, CheckIcon, DotsIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
+import { BackIcon, CheckIcon, DotsIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
 
 export default function ListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +18,13 @@ export default function ListDetail() {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [collabOpen, setCollabOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameName, setRenameName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const skipBlurSave = useRef(false);
   const addFormRef = useRef<HTMLFormElement>(null);
+  const renameFormRef = useRef<HTMLFormElement>(null);
 
   const refresh = useCallback(async () => {
     if (!id) return;
@@ -88,6 +94,57 @@ export default function ListDetail() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete task");
       refresh();
+    }
+  }
+
+  function startEdit(task: Task) {
+    skipBlurSave.current = false;
+    setEditingId(task.id);
+    setDraft(task.title);
+  }
+
+  function cancelEdit() {
+    skipBlurSave.current = true;
+    setEditingId(null);
+    setDraft("");
+  }
+
+  async function saveTitle(task: Task) {
+    if (skipBlurSave.current) {
+      skipBlurSave.current = false;
+      return;
+    }
+    const title = draft.trim();
+    setEditingId(null);
+    if (!title || title === task.title) return;
+    setList((prev) =>
+      prev ? { ...prev, tasks: prev.tasks.map((t) => (t.id === task.id ? { ...t, title } : t)) } : prev,
+    );
+    try {
+      await api.updateTask(task.id, { title });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update task");
+      refresh();
+    }
+  }
+
+  async function submitRename(e: FormEvent) {
+    e.preventDefault();
+    if (!list || busy) return;
+    const name = renameName.trim();
+    if (!name || name === list.name) {
+      setRenameOpen(false);
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.renameList(list.id, name);
+      setRenameOpen(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not rename list");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -191,13 +248,35 @@ export default function ListDetail() {
                   >
                     <CheckIcon className="h-3.5 w-3.5" />
                   </button>
-                  <span
-                    className={`min-w-0 flex-1 text-sm ${
-                      isDone ? "text-slate-400 line-through" : "text-slate-800"
-                    }`}
-                  >
-                    {task.title}
-                  </span>
+                  {editingId === task.id ? (
+                    <input
+                      autoFocus
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onBlur={() => saveTitle(task)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          saveTitle(task);
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          cancelEdit();
+                        }
+                      }}
+                      maxLength={500}
+                      className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800 outline-none focus:border-slate-400"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(task)}
+                      className={`min-w-0 flex-1 truncate text-left text-sm ${
+                        isDone ? "text-slate-400 line-through" : "text-slate-800"
+                      }`}
+                    >
+                      {task.title}
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={`Delete ${task.title}`}
@@ -240,6 +319,16 @@ export default function ListDetail() {
         <SheetButton
           onClick={() => {
             setActionsOpen(false);
+            setRenameName(list.name);
+            setRenameOpen(true);
+          }}
+        >
+          <PencilIcon className="h-5 w-5" />
+          Rename list
+        </SheetButton>
+        <SheetButton
+          onClick={() => {
+            setActionsOpen(false);
             setCollabOpen(true);
           }}
         >
@@ -262,6 +351,29 @@ export default function ListDetail() {
           <XIcon className="h-5 w-5" />
           Cancel
         </SheetButton>
+      </Sheet>
+
+      <Sheet open={renameOpen} onClose={() => setRenameOpen(false)} title="Rename list">
+        <form ref={renameFormRef} onSubmit={submitRename}>
+          <input
+            autoFocus
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            placeholder="List name"
+            maxLength={120}
+            required
+            className="mb-3 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none focus:border-slate-400 focus:bg-white"
+          />
+          <SheetButton
+            onClick={() => renameFormRef.current?.requestSubmit()}
+            disabled={!renameName.trim() || busy}
+          >
+            Save
+          </SheetButton>
+          <SheetButton variant="muted" onClick={() => setRenameOpen(false)}>
+            Cancel
+          </SheetButton>
+        </form>
       </Sheet>
 
       <Sheet open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete list?">

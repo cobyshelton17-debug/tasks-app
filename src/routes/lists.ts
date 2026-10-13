@@ -102,7 +102,7 @@ listsRouter.get("/:id", async (req, res, next) => {
 listsRouter.patch("/:id", validateBody(updateListSchema), async (req, res, next) => {
   try {
     const user = assertAuth(req);
-    await requireListOwner(param(req, "id"), user.id);
+    await requireListMember(param(req, "id"), user.id);
     const { name } = req.body as z.infer<typeof updateListSchema>;
 
     const list = await prisma.taskList.update({

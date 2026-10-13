@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 import CollaborateSheet from "../components/CollaborateSheet";
 import ListCard from "../components/ListCard";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { ListIcon, LogoutIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
+import { ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
 
 export default function Dashboard() {
   const { logout } = useAuth();
@@ -22,6 +22,10 @@ export default function Dashboard() {
   const [actionsFor, setActionsFor] = useState<TaskList | null>(null);
   const [collabWith, setCollabWith] = useState<TaskList | null>(null);
   const [deleteFor, setDeleteFor] = useState<TaskList | null>(null);
+  const [renameFor, setRenameFor] = useState<TaskList | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameBusy, setRenameBusy] = useState(false);
+  const renameFormRef = useRef<HTMLFormElement>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -71,6 +75,26 @@ export default function Dashboard() {
       setActionsFor(null);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Could not delete list");
+    }
+  }
+
+  async function submitRename(e: FormEvent) {
+    e.preventDefault();
+    if (!renameFor || renameBusy) return;
+    const name = renameName.trim();
+    if (!name || name === renameFor.name) {
+      setRenameFor(null);
+      return;
+    }
+    setRenameBusy(true);
+    try {
+      const updated = await api.renameList(renameFor.id, name);
+      setLists((prev) => prev.map((l) => (l.id === renameFor.id ? { ...l, name: updated.name } : l)));
+      setRenameFor(null);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not rename list");
+    } finally {
+      setRenameBusy(false);
     }
   }
 
@@ -227,6 +251,16 @@ export default function Dashboard() {
       >
         <SheetButton
           onClick={() => {
+            setRenameName(actionsFor?.name ?? "");
+            setRenameFor(actionsFor);
+            setActionsFor(null);
+          }}
+        >
+          <PencilIcon className="h-5 w-5" />
+          Rename list
+        </SheetButton>
+        <SheetButton
+          onClick={() => {
             setCollabWith(actionsFor);
             setActionsFor(null);
           }}
@@ -262,6 +296,29 @@ export default function Dashboard() {
         <SheetButton variant="muted" onClick={() => setDeleteFor(null)}>
           Cancel
         </SheetButton>
+      </Sheet>
+
+      <Sheet open={renameFor !== null} onClose={() => setRenameFor(null)} title="Rename list">
+        <form ref={renameFormRef} onSubmit={submitRename}>
+          <input
+            autoFocus
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            placeholder="List name"
+            maxLength={120}
+            required
+            className="mb-3 h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-base outline-none focus:border-slate-400 focus:bg-white"
+          />
+          <SheetButton
+            onClick={() => renameFormRef.current?.requestSubmit()}
+            disabled={!renameName.trim() || renameBusy}
+          >
+            Save
+          </SheetButton>
+          <SheetButton variant="muted" onClick={() => setRenameFor(null)}>
+            Cancel
+          </SheetButton>
+        </form>
       </Sheet>
 
       {collabWith && (
