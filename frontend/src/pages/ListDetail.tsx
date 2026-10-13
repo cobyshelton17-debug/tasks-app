@@ -425,14 +425,13 @@ export default function ListDetail() {
 
       <Sheet
         open={taskActionsFor !== null}
-        onClose={() => setTaskActionsFor(null)}
+        onClose={() => {}}
         title={taskActionsFor?.title}
       >
         <SheetButton
           disabled={list.tasks.findIndex((t) => t.id === taskActionsFor?.id) <= 0}
           onClick={() => {
             if (taskActionsFor) moveTask(taskActionsFor, -1);
-            setTaskActionsFor(null);
           }}
         >
           <ChevronUpIcon className="h-5 w-5" />
@@ -444,15 +443,14 @@ export default function ListDetail() {
           }
           onClick={() => {
             if (taskActionsFor) moveTask(taskActionsFor, 1);
-            setTaskActionsFor(null);
           }}
         >
           <ChevronDownIcon className="h-5 w-5" />
           Move down
         </SheetButton>
-        <SheetButton variant="muted" onClick={() => setTaskActionsFor(null)}>
-          <XIcon className="h-5 w-5" />
-          Cancel
+        <SheetButton onClick={() => setTaskActionsFor(null)}>
+          <CheckIcon className="h-5 w-5" />
+          Done
         </SheetButton>
       </Sheet>
 

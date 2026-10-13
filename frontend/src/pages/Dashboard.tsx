@@ -5,7 +5,7 @@ import { useAuth } from "../auth";
 import CollaborateSheet from "../components/CollaborateSheet";
 import ListCard from "../components/ListCard";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { ChevronDownIcon, ChevronUpIcon, ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon, XIcon } from "../components/icons";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon } from "../components/icons";
 
 export default function Dashboard() {
   const { logout } = useAuth();
@@ -261,14 +261,13 @@ export default function Dashboard() {
 
       <Sheet
         open={actionsFor !== null}
-        onClose={() => setActionsFor(null)}
+        onClose={() => {}}
         title={actionsFor?.name}
       >
         <SheetButton
           disabled={actionsFor ? lists.findIndex((l) => l.id === actionsFor.id) <= 0 : true}
           onClick={() => {
             if (actionsFor) moveList(actionsFor, -1);
-            setActionsFor(null);
           }}
         >
           <ChevronUpIcon className="h-5 w-5" />
@@ -280,7 +279,6 @@ export default function Dashboard() {
           }
           onClick={() => {
             if (actionsFor) moveList(actionsFor, 1);
-            setActionsFor(null);
           }}
         >
           <ChevronDownIcon className="h-5 w-5" />
@@ -317,9 +315,9 @@ export default function Dashboard() {
             Delete list
           </SheetButton>
         ) : null}
-        <SheetButton variant="muted" onClick={() => setActionsFor(null)}>
-          <XIcon className="h-5 w-5" />
-          Cancel
+        <SheetButton onClick={() => setActionsFor(null)}>
+          <CheckIcon className="h-5 w-5" />
+          Done
         </SheetButton>
       </Sheet>
 
