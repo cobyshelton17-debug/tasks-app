@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error.js";
 import { authRouter } from "./routes/auth.js";
 import { invitationsRouter } from "./routes/invitations.js";
 import { listsRouter } from "./routes/lists.js";
+import { pushRouter } from "./routes/push.js";
 import { tasksRouter } from "./routes/tasks.js";
 
 const helmet = helmetNs.default as unknown as (
@@ -57,6 +58,7 @@ export function createApp() {
 
   app.use("/api/auth", authRouter);
   app.use("/api/lists", listsRouter);
+  app.use("/api/push", pushRouter);
   app.use("/api", invitationsRouter);
   app.use("/api", tasksRouter);
 

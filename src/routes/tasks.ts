@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { requireListMember } from "../lib/access.js";
 import { badRequest, notFound } from "../lib/errors.js";
+import { notifyListActivity } from "../lib/push.js";
 import { param } from "../lib/param.js";
 import { assertAuth, requireAuth } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validate.js";
@@ -112,6 +113,8 @@ tasksRouter.post("/lists/:id/tasks", validateBody(createTaskSchema), async (req,
       include: taskInclude,
     });
 
+    await notifyListActivity(listId, { id: user.id, name: user.name });
+
     res.status(201).json(task);
   } catch (err) {
     next(err);
@@ -140,6 +143,8 @@ tasksRouter.patch("/lists/:id/tasks/reorder", validateBody(reorderSchema), async
       ),
     );
 
+    await notifyListActivity(listId, { id: user.id, name: user.name });
+
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -167,6 +172,8 @@ tasksRouter.patch("/tasks/:id", validateBody(updateTaskSchema), async (req, res,
       include: taskInclude,
     });
 
+    await notifyListActivity(existing.listId, { id: user.id, name: user.name });
+
     res.json(task);
   } catch (err) {
     next(err);
@@ -178,6 +185,7 @@ tasksRouter.delete("/tasks/:id", async (req, res, next) => {
     const user = assertAuth(req);
     const existing = await loadTaskForUser(param(req, "id"), user.id);
     await prisma.task.delete({ where: { id: existing.id } });
+    await notifyListActivity(existing.listId, { id: user.id, name: user.name });
     res.status(204).end();
   } catch (err) {
     next(err);

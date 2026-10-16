@@ -5,3 +5,7 @@ process.env.JWT_SECRET = "test-secret-that-is-long-enough-123456";
 process.env.JWT_EXPIRES_IN = "1h";
 process.env.PORT = "0";
 process.env.CORS_ORIGIN = "http://localhost:5173";
+process.env.VAPID_PUBLIC_KEY = "test-public-key";
+process.env.VAPID_PRIVATE_KEY = "test-private-key";
+process.env.VAPID_SUBJECT = "mailto:test@example.com";
+process.env.NOTIFY_THROTTLE_MS = "300000";

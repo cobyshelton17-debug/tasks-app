@@ -160,4 +160,18 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ order }),
     }),
+
+  pushPublicKey: () => request<{ publicKey: string }>("/push/public-key"),
+
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    request<{ ok: boolean }>("/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(subscription),
+    }),
+
+  unsubscribePush: (endpoint: string) =>
+    request<void>("/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }),
 };

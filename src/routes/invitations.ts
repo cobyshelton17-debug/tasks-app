@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { requireListOwner } from "../lib/access.js";
 import { conflict, notFound } from "../lib/errors.js";
+import { notifyInvitation, notifyListActivity } from "../lib/push.js";
 import { param } from "../lib/param.js";
 import { assertAuth, requireAuth } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validate.js";
@@ -55,6 +56,10 @@ invitationsRouter.post(
           inviter: { select: { id: true, name: true, email: true } },
         },
       });
+
+      if (invitee) {
+        await notifyInvitation(invitee.id, { id: user.id, name: user.name }, invitation.list);
+      }
 
       res.status(201).json(invitation);
     } catch (err) {
@@ -122,6 +127,8 @@ invitationsRouter.post("/invitations/:id/accept", async (req, res, next) => {
         update: {},
       }),
     ]);
+
+    await notifyListActivity(invitation.listId, { id: user.id, name: user.name });
 
     res.json({ ...updated, list: invitation.list, inviter: invitation.inviter });
   } catch (err) {

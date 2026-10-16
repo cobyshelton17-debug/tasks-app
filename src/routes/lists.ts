@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
 import { param } from "../lib/param.js";
+import { notifyListActivity } from "../lib/push.js";
 import { requireListMember, requireListOwner } from "../lib/access.js";
 import { assertAuth, requireAuth } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validate.js";
@@ -143,14 +144,17 @@ listsRouter.patch("/reorder", validateBody(reorderSchema), async (req, res, next
 listsRouter.patch("/:id", validateBody(updateListSchema), async (req, res, next) => {
   try {
     const user = assertAuth(req);
-    await requireListMember(param(req, "id"), user.id);
+    const listId = param(req, "id");
+    await requireListMember(listId, user.id);
     const { name } = req.body as z.infer<typeof updateListSchema>;
 
     const list = await prisma.taskList.update({
-      where: { id: param(req, "id") },
+      where: { id: listId },
       data: { name },
       include: listInclude,
     });
+
+    await notifyListActivity(listId, { id: user.id, name: user.name });
 
     res.json(list);
   } catch (err) {
@@ -195,6 +199,7 @@ listsRouter.post("/:id/members/leave", async (req, res, next) => {
     }
 
     await prisma.listMember.delete({ where: { id: membership.id } });
+    await notifyListActivity(param(req, "id"), { id: user.id, name: user.name });
     res.status(204).end();
   } catch (err) {
     next(err);
@@ -218,6 +223,7 @@ listsRouter.delete("/:id/members/:userId", async (req, res, next) => {
     if (!target) throw notFound("That user is not a member of this list");
 
     await prisma.listMember.delete({ where: { id: target.id } });
+    await notifyListActivity(listId, { id: user.id, name: user.name });
     res.status(204).end();
   } catch (err) {
     next(err);

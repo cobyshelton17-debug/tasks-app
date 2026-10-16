@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { api, type Invitation, type TaskList } from "../api";
 import { useAuth } from "../auth";
 import CollaborateSheet from "../components/CollaborateSheet";
+import InstallPrompt from "../components/InstallPrompt";
 import ListCard from "../components/ListCard";
 import Sheet, { SheetButton } from "../components/Sheet";
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon } from "../components/icons";
+import { currentSubscription, disablePush, enablePush, pushSupport } from "../push";
+import { BellIcon, BellOffIcon, CheckIcon, ChevronDownIcon, ChevronUpIcon, ListIcon, LogoutIcon, PencilIcon, PlusIcon, TrashIcon, UsersIcon } from "../components/icons";
 
 export default function Dashboard() {
   const { logout } = useAuth();
@@ -26,6 +28,37 @@ export default function Dashboard() {
   const [renameName, setRenameName] = useState("");
   const [renameBusy, setRenameBusy] = useState(false);
   const renameFormRef = useRef<HTMLFormElement>(null);
+
+  const [pushReady, setPushReady] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+
+  useEffect(() => {
+    if (pushSupport() !== "ready") return;
+    setPushReady(true);
+    let cancelled = false;
+    currentSubscription()
+      .then((sub) => {
+        if (!cancelled) setPushOn(Boolean(sub));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function togglePush() {
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+      } else {
+        await enablePush();
+        setPushOn(true);
+      }
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not update notifications");
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -134,6 +167,16 @@ export default function Dashboard() {
             <h1 className="text-lg font-bold tracking-tight">Tasks</h1>
           </div>
           <div className="flex items-center gap-1">
+            {pushReady && (
+              <button
+                type="button"
+                aria-label={pushOn ? "Disable notifications" : "Enable notifications"}
+                onClick={togglePush}
+                className="rounded-full p-2.5 text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                {pushOn ? <BellIcon /> : <BellOffIcon />}
+              </button>
+            )}
             <button
               type="button"
               aria-label="Log out"
@@ -158,6 +201,8 @@ export default function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-lg space-y-4 px-4 pt-4">
+        <InstallPrompt />
+
         {loadError && (
           <div className="flex items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
             <span className="truncate">{loadError}</span>

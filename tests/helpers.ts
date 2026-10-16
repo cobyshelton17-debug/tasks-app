@@ -6,7 +6,7 @@ export const app = createApp();
 
 export async function resetDb() {
   await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE "Task", "Invitation", "ListMember", "TaskList", "User" RESTART IDENTITY CASCADE`,
+    `TRUNCATE TABLE "NotificationThrottle", "PushSubscription", "Task", "Invitation", "ListMember", "TaskList", "User" RESTART IDENTITY CASCADE`,
   );
 }
 
