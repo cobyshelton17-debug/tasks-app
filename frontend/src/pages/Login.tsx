@@ -35,7 +35,13 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-slate-900 px-5 py-10">
+    <div
+      className="flex min-h-full flex-col items-center justify-center bg-slate-900 px-5 py-10"
+      style={{
+        paddingTop: "calc(env(safe-area-inset-top) + 2.5rem)",
+        paddingBottom: "calc(env(safe-area-inset-bottom) + 2.5rem)",
+      }}
+    >
       <div className="mb-8 text-center text-white">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
           <ListIcon className="h-7 w-7" />

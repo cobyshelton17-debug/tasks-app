@@ -158,7 +158,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full pb-12">
-      <header className="sticky top-0 z-40 bg-slate-900 text-white shadow-md">
+      <header
+        className="sticky top-0 z-40 bg-slate-900 text-white shadow-md"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">

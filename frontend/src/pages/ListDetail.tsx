@@ -211,7 +211,10 @@ export default function ListDetail() {
 
   return (
     <div className="flex min-h-full flex-col bg-slate-100">
-      <header className="sticky top-0 z-40 bg-slate-900 text-white shadow-md">
+      <header
+        className="sticky top-0 z-40 bg-slate-900 text-white shadow-md"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="mx-auto flex h-14 max-w-lg items-center gap-1 px-2">
           <button
             type="button"
